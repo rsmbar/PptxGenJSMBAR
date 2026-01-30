@@ -63,6 +63,11 @@ export function createSlideMaster(props: SlideMasterProps, target: SlideLayout):
 	// if (props.background || target.background) addBackgroundDefinition(props.background, target)
 	if (props.bkgd) target.bkgd = props.bkgd // DEPRECATED: (remove in v4.0.0)
 
+	// Store guides if provided
+	if (props.guides && Array.isArray(props.guides)) {
+		target._guides = props.guides
+	}
+
 	// STEP 2: Add all Slide Master objects in the order they were given
 	if (props.objects && Array.isArray(props.objects) && props.objects.length > 0) {
 		props.objects.forEach((object, idx) => {

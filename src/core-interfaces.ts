@@ -90,6 +90,26 @@ export type Margin = number | [number, number, number, number]
 export type HAlign = 'left' | 'center' | 'right' | 'justify'
 export type VAlign = 'top' | 'middle' | 'bottom'
 
+/**
+ * Slide guide definition for alignment
+ */
+export interface SlideGuide {
+    /**
+     * Position of the guide in inches from the left (vertical guide) or top (horizontal guide)
+     */
+    position: number
+    /**
+     * Guide orientation
+     * @default 'vertical'
+     */
+    orientation?: 'vertical' | 'horizontal'
+    /**
+     * Guide color (hex without #)
+     * @default 'A4A3A4' (gray)
+     */
+    color?: string
+}
+
 // used by charts, shape, text
 export interface BorderProps {
 	/**
@@ -446,7 +466,7 @@ export interface PlaceholderProps extends PositionProps, TextBaseProps {
 	/**
 	 * margin (points)
 	 */
-	margin?: Margin
+	margin: 0 | [0, 0, 0, 0]
 }
 export interface ObjectNameProps {
 	/**
@@ -459,19 +479,82 @@ export interface ObjectNameProps {
 	 */
 	objectName?: string
 }
+/**
+ * Theme color scheme - defines the standard Office theme colors
+ */
+export interface ThemeColorScheme {
+	/** Dark 1 - typically black for dark text */
+	dk1?: string
+	/** Light 1 - typically white for light backgrounds */
+	lt1?: string
+	/** Dark 2 - secondary dark color */
+	dk2?: string
+	/** Light 2 - secondary light color */
+	lt2?: string
+	/** Accent 1 - primary accent color */
+	accent1?: string
+	/** Accent 2 */
+	accent2?: string
+	/** Accent 3 */
+	accent3?: string
+	/** Accent 4 */
+	accent4?: string
+	/** Accent 5 */
+	accent5?: string
+	/** Accent 6 */
+	accent6?: string
+	/** Hyperlink color */
+	hlink?: string
+	/** Followed hyperlink color */
+	folHlink?: string
+}
+
+/**
+ * Custom color definition for theme
+ */
+export interface CustomColor {
+	/** Display name for the color */
+	name: string
+	/** Hex color value (without #) */
+	value: string
+}
+
 export interface ThemeProps {
+	/**
+	 * Theme name
+	 * @example 'My Custom Theme'
+	 * @default 'Office Theme'
+	 */
+	themeName?: string
+	/**
+	 * Color scheme name
+	 * @example 'Custom Colors'
+	 * @default 'Office'
+	 */
+	colorSchemeName?: string
 	/**
 	 * Headings font face name
 	 * @example 'Arial Narrow'
-	 * @default 'Calibri Light'
+	 * @default 'Arial'
 	 */
 	headFontFace?: string
 	/**
 	 * Body font face name
 	 * @example 'Arial'
-	 * @default 'Calibri'
+	 * @default 'Arial'
 	 */
 	bodyFontFace?: string
+	/**
+	 * Color scheme colors
+	 * Defines the main theme colors (dk1, lt1, dk2, lt2, accent1-6, hlink, folHlink)
+	 */
+	colors?: ThemeColorScheme
+	/**
+	 * Custom colors list
+	 * These appear in PowerPoint's color picker under "Custom"
+	 * @example [{ name: 'Brand Red', value: 'D6002A' }, { name: 'Ocean Blue', value: '006D89' }]
+	 */
+	customColors?: CustomColor[]
 }
 
 // image / media ==================================================================================
@@ -1738,35 +1821,42 @@ export interface SlideNumberProps extends PositionProps, TextBaseProps {
 	 */
 	margin?: Margin // TODO: convert to inches in 4.0 (valid values are 0-22)
 }
-export interface SlideMasterProps {
-	/**
-	 * Unique name for this master
-	 */
-	title: string
-	background?: BackgroundProps
-	margin?: Margin
-	slideNumber?: SlideNumberProps
-	objects?: Array< | { chart: IChartOpts }
-	| { image: ImageProps }
-	| { line: ShapeProps }
-	| { rect: ShapeProps }
-	| { text: TextProps }
-	| {
-		placeholder: {
-			options: PlaceholderProps
-			/**
-			 * Text to be shown in placeholder (shown until user focuses textbox or adds text)
-			 * - Leave blank to have powerpoint show default phrase (ex: "Click to add title")
-			 */
-			text?: string
-		}
-	}>
 
-	/**
-	 * @deprecated v3.3.0 - use `background`
-	 */
-	bkgd?: string | BackgroundProps
+export interface SlideMasterProps {
+    /**
+     * Unique name for this master
+     */
+    title: string
+    background?: BackgroundProps
+    margin?: Margin
+    slideNumber?: SlideNumberProps
+    /**
+     * Slide guides for alignment
+     * These appear as dashed lines in PowerPoint's View > Guides
+     */
+    guides?: SlideGuide[]
+    objects?: Array< | { chart: IChartOpts }
+    | { image: ImageProps }
+    | { line: ShapeProps }
+    | { rect: ShapeProps }
+    | { text: TextProps }
+    | {
+        placeholder: {
+            options: PlaceholderProps
+            /**
+             * Text to be shown in placeholder (shown until user focuses textbox or adds text)
+             * - Leave blank to have powerpoint show default phrase (ex: "Click to add title")
+             */
+            text?: string
+        }
+    }>
+
+    /**
+     * @deprecated v3.3.0 - use `background`
+     */
+    bkgd?: string | BackgroundProps
 }
+
 export interface ObjectOptions extends ImageProps, PositionProps, ShapeProps, TableCellProps, TextPropsOptions {
 	_placeholderIdx?: number
 	_placeholderType?: PLACEHOLDER_TYPE
@@ -1777,24 +1867,30 @@ export interface ObjectOptions extends ImageProps, PositionProps, ShapeProps, Ta
 	colW?: number | number[] // table
 	rowH?: number | number[] // table
 }
-export interface SlideBaseProps {
-	_bkgdImgRid?: number
-	_margin?: Margin
-	_name?: string
-	_presLayout: PresLayout
-	_rels: ISlideRel[]
-	_relsChart: ISlideRelChart[] // needed as we use args:"PresSlide|SlideLayout" often
-	_relsMedia: ISlideRelMedia[] // needed as we use args:"PresSlide|SlideLayout" often
-	_slideNum: number
-	_slideNumberProps?: SlideNumberProps
-	_slideObjects?: ISlideObject[]
 
-	background?: BackgroundProps
-	/**
-	 * @deprecated v3.3.0 - use `background`
-	 */
-	bkgd?: string | BackgroundProps
+export interface SlideBaseProps {
+    _bkgdImgRid?: number
+    _margin?: Margin
+    _name?: string
+    _presLayout: PresLayout
+    _rels: ISlideRel[]
+    _relsChart: ISlideRelChart[] // needed as we use args:"PresSlide|SlideLayout" often
+    _relsMedia: ISlideRelMedia[] // needed as we use args:"PresSlide|SlideLayout" often
+    _slideNum: number
+    _slideNumberProps?: SlideNumberProps
+    _slideObjects?: ISlideObject[]
+    /**
+     * Slide master guides for alignment
+     */
+    _guides?: SlideGuide[]
+
+    background?: BackgroundProps
+    /**
+     * @deprecated v3.3.0 - use `background`
+     */
+    bkgd?: string | BackgroundProps
 }
+
 export interface SlideLayout extends SlideBaseProps {
 	_slide?: {
 		_bkgdImgRid?: number

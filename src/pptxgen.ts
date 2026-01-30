@@ -739,6 +739,7 @@ export default class PptxGenJS implements IPresentationProps {
 	 * Create a new slide master [layout] for the Presentation
 	 * @param {SlideMasterProps} props - layout properties
 	 */
+
 	defineSlideMaster(props: SlideMasterProps): void {
 		// (ISSUE#406;PULL#1176) deep clone the props object to avoid mutating the original object
 		const propsClone = JSON.parse(JSON.stringify(props))
@@ -762,14 +763,38 @@ export default class PptxGenJS implements IPresentationProps {
 		// STEP 1: Create the Slide Master/Layout
 		genObj.createSlideMaster(propsClone, newLayout)
 
-		// STEP 2: Add it to layout defs
-		this.slideLayouts.push(newLayout)
+		// STEP 2: Remove the default blank layout if this is the first user-defined layout
+		// Check if the only layout is the DEFAULT one
+		if (this.slideLayouts.length === 1 && this.slideLayouts[0]._name === DEF_PRES_LAYOUT_NAME) {
+			// Replace the DEFAULT layout with the user-defined one
+			this.slideLayouts[0] = newLayout
+		} else {
+			// Add it to layout defs
+			this.slideLayouts.push(newLayout)
+		}
 
 		// STEP 3: Add background (image data/path must be captured before `exportPresentation()` is called)
 		if (propsClone.background || propsClone.bkgd) genObj.addBackgroundDefinition(propsClone.background, newLayout)
 
 		// STEP 4: Add slideNumber to master slide (if any)
 		if (newLayout._slideNumberProps && !this.masterSlide._slideNumberProps) this.masterSlide._slideNumberProps = newLayout._slideNumberProps
+
+		// STEP 5: Add guides to master slide (if any)
+		// Guides defined on slide layouts are added to the master slide for use in slideMaster1.xml
+		if (newLayout._guides && newLayout._guides.length > 0) {
+			if (!this.masterSlide._guides) {
+				this.masterSlide._guides = []
+			}
+			// Add guides from this layout, avoiding duplicates
+			newLayout._guides.forEach(guide => {
+				const exists = this.masterSlide._guides.some(
+					g => g.position === guide.position && g.orientation === guide.orientation
+				)
+				if (!exists) {
+					this.masterSlide._guides.push(guide)
+				}
+			})
+		}
 	}
 
 	// HTML-TO-SLIDES METHODS
